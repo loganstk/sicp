@@ -77,37 +77,40 @@
 (define (average x y)
   (/ (+ x y) 2))
 
-(define (improve guess x)
-  (average guess (/ x guess)))
-
-(define (good-enough? prev-guess guess)
-  (< (/ (abs (- guess prev-guess)) guess) tolerance))
-
-(define (square-root-iter guess x)
-  (if (good-enough? guess (improve guess x))
-      guess
-      (square-root-iter (improve guess x)
-                        x)))
-
 (define (sqrt x)
-  (square-root-iter 1.0 x))
+  (define (improve guess)
+    (average guess (/ x guess)))
+
+  (define (good-enough? prev-guess guess)
+    (< (/ (abs (- guess prev-guess)) guess) tolerance))
+
+  (define (square-root-iter guess)
+    (if (good-enough? guess (improve guess))
+      guess
+      (square-root-iter (improve guess))))
+  
+  (square-root-iter 1.0))
 
 ; Ex. 1.8
-(define (improve-cube guess x)
-  (/ (+ (/ x (square guess)) (* 2 guess)) 3))
-
-(define (cube-root-iter guess x)
-  (if (good-enough? guess (improve-cube guess x))
-      guess
-      (cube-root-iter (improve-cube guess x)
-                       x)))
-
 (define (cube-root x)
-  ((if (> x 0) + -) (cube-root-iter 1.0 (abs x))))
+  (define abs-x (abs x))
+  
+  (define (improve guess)
+    (/ (+ (/ abs-x (square guess)) (* 2 guess)) 3))
+
+  (define (good-enough? prev-guess guess)
+    (< (/ (abs (- guess prev-guess)) guess) tolerance))
+  
+  (define (cube-root-iter guess)
+    (if (good-enough? guess (improve guess))
+      guess
+      (cube-root-iter (improve guess))))
+  
+  ((if (> x 0) + -) (cube-root-iter 1.0)))
 
 ; Ex. 1.9
 ; Recursive
-; (define (_+ a b)
+; (define (+ a b)
 ;   (if (= a 0) b (inc (+ (dec a) b))))
 
 ; Iterative
@@ -128,12 +131,12 @@
         (else (+ (fib (- n 1))
                  (fib (- n 2))))))
 
-(define (fib-iter a b n)
-  (if (= n 0)
+(define (fib-tailrec n)
+  (define (fib-iter a b n)
+    (if (= n 0)
       a
       (fib-iter b (+ a b) (- n 1))))
-
-(define (fib-tailrec n)
+  
   (fib-iter 0 1 n))
 
 ; Ex. 1.11
@@ -146,12 +149,9 @@
          (* (f (- n 3)) 3))))
 
 ; Iterative
-(define (f-helper a b c n)
-  (if (< n 3) c
-        (f-helper b c (+ c (* 2 b) (* 3 a)) (- n 1))))
-
 (define (f-iter n)
+  (define (f-helper a b c n)
+    (if (< n 3) c
+        (f-helper b c (+ c (* 2 b) (* 3 a)) (- n 1))))
+  
   (f-helper 0 1 2 n))
-        
-
-
