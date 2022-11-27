@@ -1,4 +1,5 @@
 #lang sicp
+(#%require srfi/1)
 
 ; Hello SICP
 
@@ -155,3 +156,34 @@
         (f-helper b c (+ c (* 2 b) (* 3 a)) (- n 1))))
   
   (f-helper 0 1 2 n))
+
+; Counting change
+(define coins `(1 5 10 25 50))
+
+(define (count-change amount coins)
+  (cond ((zero? amount) 1)
+        ((or (< amount 0) (null? coins)) 0)
+        (else (+ (count-change amount (cdr coins))
+                 (count-change (- amount (car coins)) coins)))))
+
+; Ex. 1.12
+(define (pascal row col)
+  (if (or (zero? col) (= row col))
+       1
+       (+ (pascal (- row 1) (- col 1)) (pascal (- row 1) col))))
+
+; Exponentiation
+(define (exp x n)
+  (if (zero? n)
+      1
+      (* x (exp x (- n 1)))))
+
+(define (fast-exp x n)
+  (cond ((zero? n) 1)
+        ((even? n) (square (fast-exp x (/ n 2))))
+        (else (* x (fast-exp x (- n 1))))))
+
+(define (expt x n)
+  (if (> n 0)
+      (fast-exp x n)
+      (/ 1 (fast-exp x (- n)))))
