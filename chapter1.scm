@@ -81,32 +81,25 @@
 (define (sqrt x)
   (define (improve guess)
     (average guess (/ x guess)))
-
   (define (good-enough? prev-guess guess)
     (< (/ (abs (- guess prev-guess)) guess) tolerance))
-
   (define (square-root-iter guess)
     (if (good-enough? guess (improve guess))
       guess
       (square-root-iter (improve guess))))
-  
   (square-root-iter 1.0))
 
 ; Ex. 1.8
 (define (cube-root x)
   (define abs-x (abs x))
-  
   (define (improve guess)
     (/ (+ (/ abs-x (square guess)) (* 2 guess)) 3))
-
   (define (good-enough? prev-guess guess)
     (< (/ (abs (- guess prev-guess)) guess) tolerance))
-  
   (define (cube-root-iter guess)
     (if (good-enough? guess (improve guess))
       guess
       (cube-root-iter (improve guess))))
-  
   ((if (> x 0) + -) (cube-root-iter 1.0)))
 
 ; Ex. 1.9
@@ -137,7 +130,6 @@
     (if (= n 0)
       a
       (fib-iter b (+ a b) (- n 1))))
-  
   (fib-iter 0 1 n))
 
 ; Ex. 1.11
@@ -187,3 +179,41 @@
   (if (> n 0)
       (fast-exp x n)
       (/ 1 (fast-exp x (- n)))))
+
+; Ex. 1.16
+(define (fast-exp-iter acc x n)
+  (cond ((zero? n) acc)
+        ((even? n) (fast-exp-iter acc (square x) (/ n 2)))
+        (else (fast-exp-iter (* acc x) x (- n 1)))))
+
+; Ex. 1.17
+(define (double x) (* x 2))
+(define (halve x) (/ x 2))
+
+(define (mul a b)
+  (cond ((= a 1) b)
+        ((even? a) (mul (halve a) (double b)))
+        (else (+ b (mul (- a 1) b)))))
+
+; Ex. 1.18
+(define (mul-iter acc a b)
+  (cond ((zero? a) acc)
+        ((even? a) (mul-iter acc (halve a) (double b)))
+        (else (mul-iter(+ acc b) (- a 1) b))))
+
+; Ex. 1.19
+(define (fib-log n)
+  (define (fib-iter a b p q count)
+    (cond ((zero? count) b)
+          ((even? count)
+           (fib-iter a
+                     b
+                     (+ (square q) (square p))
+                     (+ (* 2 p q) (square q))
+                     (/ count 2)))
+          (else (fib-iter (+ (* b q) (* a q) (* a p))
+                          (+ (* b p) (* a q))
+                          p
+                          q
+                          (- count 1)))))
+  (fib-iter 1 0 0 1 n))
