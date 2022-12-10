@@ -149,3 +149,48 @@
         (cdr (+ b 1) (/ z 3))
         b))
   (cdr 0 z))
+
+; Ex. 2.7
+(define (make-interval a b)
+  (if (> a b)
+      (error "The upper-bound should be greater then the lower-bound")
+      (cons a b)))
+
+(define (lower-bound interval) (car interval))
+(define (upper-bound interval) (cdr interval))
+
+(define (add-interval x y)
+  (make-interval (+ (lower-bound x) (lower-bound y))
+                 (+ (upper-bound x) (upper-bound y))))
+
+(define a (make-interval 1 3))
+(define b (make-interval 3 4))
+(define c (make-interval -2 -2))
+
+; Ex. 2.8
+(define (sub-interval x y)
+  (make-interval (- (lower-bound x) (upper-bound y))
+                 (- (upper-bound x) (lower-bound y))))
+
+; Ex. 2.9
+(define (width-interval interval)
+  (/ (- (upper-bound interval)
+        (lower-bound interval))
+     2))
+
+(= (width-interval (add-interval a b))
+   (+ (width-interval a)
+      (width-interval b)))
+
+(= (width-interval (sub-interval a b))
+   (+ (width-interval a)
+      (width-interval b)))
+
+; Ex. 2.10
+(define (div-interval x y)
+  (if (zero? (width-interval y))
+      (error "Can't divide by interval that spans zero width!")
+      (mul-interval
+       x
+       (make-interval (/ 1.0 (upper-bound y))
+                      (/ 1.0 (lower-bound y))))))
