@@ -60,3 +60,9 @@
 
 (car (car z)) 		; 1
 (car (cdr z))		; 3
+
+; Sequences
+; (list <a1> <a2> ... <an>)
+; is equivalent to
+; (cons <a1> (cons <a2> (cons ... (cons <an> nil) ...)))
+(list 1 2 3 4)
