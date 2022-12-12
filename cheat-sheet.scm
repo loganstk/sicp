@@ -50,6 +50,13 @@
 ;     <body>)
 ; TODO: add example
 
+; CAVEAT: Can't use vars defined within let to define subsequent vars within let! Use let* instead.
+; (let* ((<var1> <exp1>)
+;        (<var2> <exp2 using var1>)
+;        ...
+;        (<varn> <expn using var1 and var2>))
+;     <body>)
+
 ; Pairs
 ; (cons (x y)) - construct a pair
 ; (car z) - get first element of the pair
@@ -66,3 +73,9 @@
 ; is equivalent to
 ; (cons <a1> (cons <a2> (cons ... (cons <an> nil) ...)))
 (list 1 2 3 4)
+
+; Dotted-tail notation (varargs)
+; (define (f x y . z) <body>) <=> f(x, y, z*)
+; (define (g . w) <body>) <=> f() or f(w)
+; (define f (lambda (x y . z) <body>))
+; (define g (lambda w <body>))

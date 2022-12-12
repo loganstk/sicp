@@ -219,7 +219,7 @@
                           (- count 1)))))
   (fib-iter 1 0 0 1 n))
 
-; Greates common divisors
+; Greatest common divisors
 (define (gcd a b)
   (if (zero? b)
       a

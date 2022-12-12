@@ -173,9 +173,9 @@
                  (- (upper-bound x) (lower-bound y))))
 
 ; Ex. 2.9
-(define (width-interval interval)
-  (/ (- (upper-bound interval)
-        (lower-bound interval))
+(define (width-interval i)
+  (/ (- (upper-bound i)
+        (lower-bound i))
      2))
 
 (= (width-interval (add-interval a b))
@@ -186,6 +186,14 @@
    (+ (width-interval a)
       (width-interval b)))
 
+(define (mul-interval x y)
+  (let ((p1 (* (lower-bound x) (lower-bound y)))
+        (p2 (* (lower-bound x) (upper-bound y)))
+        (p3 (* (upper-bound x) (lower-bound y)))
+        (p4 (* (upper-bound x) (upper-bound y))))
+    (make-interval (min p1 p2 p3 p4)
+                   (max p1 p2 p3 p4))))
+
 ; Ex. 2.10
 (define (div-interval x y)
   (if (zero? (width-interval y))
@@ -194,3 +202,168 @@
        x
        (make-interval (/ 1.0 (upper-bound y))
                       (/ 1.0 (lower-bound y))))))
+
+; Ex. 2.11
+; Ha-ha! Really?!
+
+(define (make-center-width c w)
+  (make-interval (- c w) (+ c w)))
+
+(define (center i)
+  (/ (+ (lower-bound i)
+        (upper-bound i))
+     2))
+
+; Ex. 2.12
+(define (make-center-percent c p)
+  (let ((width (* (abs c) (/ p 100))))
+    (make-center-width c width)))
+
+(define (percent i)
+  (* (/ 1 (abs (center i)))
+     (width-interval i)
+     100))
+
+; Ex. 2.13
+(define multiplicand (make-center-percent 5 5))
+(define multiplier (make-center-percent 4 7))
+(define product (mul-interval multiplicand multiplier))
+
+(define (within-tolerance a b tolerance)
+  (< (abs (- a b)) tolerance))
+
+; The percentage tolerance of a product is within +-1 difference of sum of percentage tolerances of operands
+(within-tolerance (percent product)
+                  (+ (percent multiplicand)
+                     (percent multiplier))
+                  1)
+
+; Hierarchical Data and Closure Property
+(define one-through-four (list 1 2 3 4))
+
+(define (list-ref items n)
+  (if (= n 0)
+      (car items)
+      (list-ref (cdr items) (- n 1))))
+
+(define (length items)
+  (define (length-iter a count)
+    (if (null? a)
+        count
+        (length-iter (cdr a) (+ 1 count))))
+  (length-iter items 0))
+
+(define (append list1 list2)
+  (if (null? list1)
+      list2
+      (cons (car list1) (append (cdr list1) list2))))
+
+; Ex. 2.17
+(define (last-pair list)
+  (if (= (length list) 1)
+      (car list)
+      (last-pair (cdr list))))
+
+; Ex. 2.18
+(define (reverse list)
+  (define (reverse result list)
+    (if (null? list)
+        result
+        (reverse (cons (car list) result) (cdr list))))
+  (reverse nil list))
+
+; Ex. 2.19
+(define us-coins (list 50 25 10 5 1))
+(define uk-coins (list 100 50 20 10 5 2 1 0.5))
+
+(define first-denomination car)
+
+(define except-first-denomination cdr)
+
+(define no-more? null?)
+
+(define (cc amount coin-values)
+  (cond ((= amount 0) 1)
+        ((or (< amount 0) (no-more? coin-values)) 0)
+        (else
+         (+ (cc amount
+                (except-first-denomination
+                 coin-values))
+            (cc (- amount
+                   (first-denomination
+                    coin-values))
+                coin-values)))))
+
+; (cc 100 us-coins)
+; (cc 100 uk-coins)
+
+; Ex. 2.20
+(define (same-parity first . rest)
+  (let ((first-even (even? first)))
+    (define (helper result list)
+      (if (null? list)
+          result
+          (if (equal? first-even (even? (car list)))
+              (helper (cons result (car list)) (cdr list))
+              (helper result (cdr list)))))
+    (helper first rest)))
+
+; Ex. 2.21
+; TODO: import from chapter 1
+(define (square x) (* x x))
+
+(define (square-list items)
+  (if (null? items)
+      nil
+      (cons (square (car items)) (square-list (cdr items)))))
+
+(define (square-list2 items)
+  (map square items))
+
+; Ex. 2.22
+(define (square-list3 items)
+  (define (iter things answer)
+    (if (null? things)
+        answer
+        (iter (cdr things)
+              (cons (square (car things))
+                    answer))))
+  (iter (reverse items) nil))
+
+; Ex. 2.23
+(define (for-each proc items)
+   (define (iter first rest)
+     (proc first)
+     (for-each proc rest))
+  (if (null? items)
+      nil
+      (iter (car items) (cdr items))))
+
+(define (count-leaves x)
+  (cond ((null? x) 0)
+        ((not (pair? x)) 1)
+        (else (+ (count-leaves (car x))
+                 (count-leaves (cdr x))))))
+
+; Ex. 2.25
+(define list1 (list 1 3 (list 5 7) 9))
+(cadr (cadr (cdr list1))) ; (car (cdr (car (cdr (cdr list1)))))
+
+(define list2 (list (list 7)))
+(caar list2) ; (car (car list2))
+
+(define list3 (list 1 (list 2 (list 3 (list 4 (list 5 (list 6 7)))))))
+(cadr (cadr (cadr (cadr (cadr (cadr list3)))))) ; ...
+
+; Ex. 2. 26
+; (define x (list 1 2 3))
+; (define y (list 4 5 6))
+
+; > (append x y)
+; (1 2 3 4 5 6)
+
+; > (cons x y)
+; ((1 2 3) 4 5 6)
+
+; > (list x y)
+; ((1 2 3) (4 5 6))
