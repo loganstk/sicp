@@ -355,7 +355,7 @@
 (define list3 (list 1 (list 2 (list 3 (list 4 (list 5 (list 6 7)))))))
 (cadr (cadr (cadr (cadr (cadr (cadr list3)))))) ; ...
 
-; Ex. 2. 26
+; Ex. 2.26
 ; (define x (list 1 2 3))
 ; (define y (list 4 5 6))
 
@@ -367,3 +367,19 @@
 
 ; > (list x y)
 ; ((1 2 3) (4 5 6))
+
+; Ex. 2.27
+(define (deep-reverse items)
+  (define (deep-reverse result items)
+    (cond ((not (list? items)) items)
+          ((null? items) result)
+          (else (deep-reverse (cons (deep-reverse nil (car items)) result) (cdr items)))))
+  (deep-reverse nil items))
+
+; Ex. 2.28
+(define (fringe tree)
+  (define leaf? number?)
+  (cond ((null? tree) nil)
+        ((leaf? tree) (list tree))
+        (else (append (fringe (car tree))
+                      (fringe (cdr tree))))))
