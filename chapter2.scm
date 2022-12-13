@@ -378,8 +378,44 @@
 
 ; Ex. 2.28
 (define (fringe tree)
-  (define leaf? number?)
   (cond ((null? tree) nil)
-        ((leaf? tree) (list tree))
+        ((number? tree) (list tree))
         (else (append (fringe (car tree))
                       (fringe (cdr tree))))))
+
+; Ex. 2.29
+(define (make-mobile left right)
+  (list left right))
+(define (make-branch length structure)
+  (list length structure))
+
+(define (left-branch mobile)
+  (car mobile))
+(define (right-branch mobile)
+  (cadr mobile))
+
+(define (branch-length branch)
+  (car branch))
+(define (branch-structure branch)
+  (cadr branch))
+
+(define (total-weight mobile)
+  (if (number? mobile)
+      mobile
+      (+ (total-weight (branch-structure (left-branch mobile)))
+         (total-weight (branch-structure (right-branch mobile))))))
+
+(define (torque branch)
+  (* (branch-length branch)
+     (total-weight (branch-structure branch))))
+
+(define (balanced? mobile)
+  (if (number? mobile)
+      #t
+      (let* ((left (left-branch mobile))
+             (right (right-branch mobile))
+             (left-str (branch-structure left))
+             (right-str (branch-structure right)))
+        (and (= (torque left) (torque right))
+             (balanced? left-str)
+             (balanced? right-str)))))
