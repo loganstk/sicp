@@ -1,3 +1,5 @@
+#lang sicp ; This file can be interpreted by DrRacket
+
 ; Combinations
 ; (operator operand1 operand2 ...operandN)
 (+ 1 2 3)		; 6
@@ -21,20 +23,19 @@
 ;       ...
 ;       (else <e>))
 
-
 ; If special form
 ; (if <predicate> <consequent> <alternative>)
 ; #t - TRUE, #f - FALSE 
-(if (> a 0) 1 (- 1))
+(if (> a 0) 1 (- 1))    ; 1
 
 ; (and <e1> ... <en>)
-(and (> a 0) (< a 10)) ; #f
+(and (> a 0) (< a 10))  ; #f
 
 ; (or <e1> ... <en>)
-(or (= a 42) (= b 0))  ; #t 
+(or (= a 42) (= b 0))   ; #t 
 
 ; (not <e>)
-(not #t)               ; #f
+(not #t)                ; #f
 
 ; Creating anonymous procedures - labmda special form
 ; (lambda (<formal-parameters>) (<body>)
@@ -48,14 +49,19 @@
 ;       ...
 ;       (<varn> <expn>))
 ;     <body>)
-; TODO: add example
+(let ((x 5)
+      (y 7))
+      (+ x y))          ; 12 
 
-; CAVEAT: Can't use vars defined within let to define subsequent vars within let! Use let* instead.
+; CAVEAT: To use previously defined vars to define new vars - use let* form.
 ; (let* ((<var1> <exp1>)
 ;        (<var2> <exp2 using var1>)
 ;        ...
 ;        (<varn> <expn using var1 and var2>))
 ;     <body>)
+(let* ((x 5)
+      (y (+ x 2)))
+      (+ x y))          ; 12
 
 ; Pairs
 ; (cons (x y)) - construct a pair
@@ -72,10 +78,12 @@
 ; (list <a1> <a2> ... <an>)
 ; is equivalent to
 ; (cons <a1> (cons <a2> (cons ... (cons <an> nil) ...)))
-(list 1 2 3 4)
+(define my-list (list 1 2 3 4)) ; (1 2 3 4)
+(car my-list)                   ; 1
+(cdr my-list)                   ; (2 3 4)
 
 ; Dotted-tail notation (varargs)
 ; (define (f x y . z) <body>) <=> f(x, y, z*)
-; (define (g . w) <body>) <=> f() or f(w)
+; (define (g . w) <body>) <=> g() or g(w)
 ; (define f (lambda (x y . z) <body>))
 ; (define g (lambda w <body>))
