@@ -419,3 +419,41 @@
         (and (= (torque left) (torque right))
              (balanced? left-str)
              (balanced? right-str)))))
+
+(define (scale-tree tree factor)
+  (cond ((null? tree) nil)
+        ((not (pair? tree)) (* tree factor))
+        (else (cons (scale-tree (car tree) factor)
+                    (scale-tree (cdr tree) factor)))))
+
+(define (scale-tree2 tree factor)
+  (map (lambda (sub-tree)
+         (if (pair? sub-tree)
+             (scale-tree2 sub-tree factor)
+             (* sub-tree factor)))
+       tree))
+
+; Ex. 2.30
+(define (square-tree tree)
+  (cond ((null? tree) nil)
+        ((not (pair? tree)) (square tree))
+        (else (cons (square-tree (car tree))
+                    (square-tree (cdr tree))))))
+
+; Ex. 2.31
+(define (tree-map proc tree)
+  (cond ((null? tree) nil)
+        ((not (pair? tree)) (proc tree))
+        (else (cons (tree-map proc (car tree))
+                    (tree-map proc (cdr tree))))))
+
+; (define (square-tree tree) (tree-map square tree))
+; (define (scale-tree factor tree)
+;   (tree-map (lambda (x) (* x factor)) tree))
+
+; Ex. 2.32
+(define (subsets s)
+  (if (null? s)
+      (list nil)
+      (let ((rest (subsets (cdr s))))
+        (append rest (map (lambda (x) (cons (car s) x)) rest)))))
