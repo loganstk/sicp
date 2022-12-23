@@ -1,5 +1,4 @@
 #lang sicp
-(#%require srfi/1)
 
 ; Hello SICP
 

@@ -151,4 +151,88 @@
 (define (reverse-left sequence)
   (fold-left (lambda (acc elem) (cons elem acc)) nil sequence))
 
+; Nested Mappings
 
+; somehting something prime-sum-pairs...
+
+(define (flatmap proc seq)
+  (accumulate append nil (map proc seq)))
+
+(define (remove item sequence)
+  (filter (lambda (x) (not (= x item)))
+          sequence))   
+
+(define (permutations s)
+  (if (null? s)
+      (list nil)
+      (flatmap (lambda (x)
+                 (map (lambda (p) (cons x p))
+                      (permutations (remove x s))))
+               s)))
+
+; Ex. 2.40
+(define (unique-pairs n)
+  (flatmap (lambda (i)
+                  (map (lambda (j) (list i j))
+                         (enumerate-interval 1 (- i 1))))
+           (enumerate-interval 1 n)))
+
+; Ex. 2.41
+(define (unique-triples n)
+  (flatmap (lambda (i)
+             (flatmap (lambda (j)
+                        (map (lambda (k) (list i j k))
+                             (enumerate-interval 1 (- j 1))))
+                      (enumerate-interval 1 (- i 1))))
+             (enumerate-interval 1 n)))
+
+(define (adds-to? triple sum)
+  (= (accumulate + 0 triple) sum))
+
+(define (three-sum s n)
+  (filter (lambda (x) (adds-to? x s))
+          (unique-triples n)))
+
+; Ex. 2.42
+(define (adjoin-position row col rest-of-queens)
+  (cons (list row col) rest-of-queens)) ; Inserting a new position at column K
+                                        ; at the front of the positions list
+  
+(define empty-board nil)
+
+; Checks whether the queen 'a' is attacked by the queen 'b'.
+(define (under-attack? a b)
+  (let ((row-a (car a))
+        (col-a (cadr a))
+        (row-b (car b))
+        (col-b (cadr b)))
+    (or (= row-a row-b)
+        (= col-a col-b)
+        (= (abs (- row-a row-b))
+           (abs (- col-a col-b))))))
+
+(define (forall predicate sequence)
+  (accumulate (lambda (x y) (and x y)) true
+              (map predicate sequence)))
+  
+(define (safe? positions)
+  (let ((k (car positions))             ; Last inserted queen was at column K
+        (other-queens (cdr positions)))
+    (forall (lambda (q)
+              (not (under-attack? k q)))
+            other-queens)))
+
+(define (queens board-size)
+  (define (queen-cols k)
+    (if (= k 0)
+        (list empty-board)
+        (filter
+         (lambda (positions) (safe? positions))
+         (flatmap
+          (lambda (placed-queens)
+                 (map (lambda (new-row)
+                        (adjoin-position
+                         new-row k placed-queens))
+                      (enumerate-interval 1 board-size)))
+          (queen-cols (- k 1))))))
+  (queen-cols board-size))
