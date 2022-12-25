@@ -195,17 +195,17 @@
 
 ; Ex. 2.42
 (define (adjoin-position row col rest-of-queens)
-  (cons (list row col) rest-of-queens)) ; Inserting a new position at column K
-                                        ; at the front of the positions list
+  (cons (cons row col) rest-of-queens)) ; Inserting a new position at column K
+                                        ; at the beginning of the positions list
   
 (define empty-board nil)
 
 ; Checks whether the queen 'a' is attacked by the queen 'b'.
 (define (under-attack? a b)
   (let ((row-a (car a))
-        (col-a (cadr a))
+        (col-a (cdr a))
         (row-b (car b))
-        (col-b (cadr b)))
+        (col-b (cdr b)))
     (or (= row-a row-b)
         (= col-a col-b)
         (= (abs (- row-a row-b))

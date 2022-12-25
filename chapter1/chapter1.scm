@@ -224,7 +224,6 @@
       a
       (gcd b (remainder a b))))
 
-
 (define (sum term a next b)
   (if (> a b) 0
       (+ (term a)

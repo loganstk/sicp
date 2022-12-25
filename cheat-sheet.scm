@@ -87,3 +87,12 @@
 ; (define (g . w) <body>) <=> g() or g(w)
 ; (define f (lambda (x y . z) <body>))
 ; (define g (lambda w <body>))
+
+; Quotation - `<exp> <=> (quote <exp>).
+; Referes to an expression as symbols rather than values.
+(define c 1)
+(define d 2)
+(list c d)              ; (1 2)
+(list 'c 'd)            ; (c d)
+(list 'c d)             ; (c 2)
+'()                     ; () - empty list aka nil
