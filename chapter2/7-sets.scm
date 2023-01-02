@@ -114,28 +114,9 @@
                     (adjoin-set-tree x (right-branch set))))))
 
 ; Ex. 2.63
-(define tree1 (make-tree 7
-                         (make-tree 3
-                                    (make-tree 1 '() '())
-                                    (make-tree 5 '() '()))
-                         (make-tree 9
-                                    '()
-                                    (make-tree 11 '() '()))))
-
-(define tree2 (make-tree 3
-                         (make-tree 1 '() '())
-                         (make-tree 7
-                                    (make-tree 5 '() '())
-                                    (make-tree 9 '()
-                                               (make-tree 11 '() '())))))
-
-(define tree3 (make-tree 5
-                         (make-tree 3
-                                    (make-tree 1 '() '())
-                                    '())
-                         (make-tree 9
-                                    (make-tree 7 '() '())
-                                    (make-tree 11 '() '()))))
+(define tree1 '(7 (3 (1 () ()) (5 () ())) (9 () (11 () ()))))
+(define tree2 '(3 (1 () ()) (7 (5 () ()) (9 () (11 () ())))))
+(define tree3 '(5 (3 (1 () ()) ()) (9 (7 () ()) (11 () ()))))
 
 (define (tree->list-1 tree)
   (if (null? tree)
@@ -155,3 +136,58 @@
                              (right-branch tree)
                              result-list)))))
   (copy-to-list tree '()))
+
+; Ex. 2.64
+; The '(partial-tree elts n) function constructs a balanced tree
+; from the first 'n elements of list 'elts. Left subtree 'left-result
+; consists of the first (n-1)/2 elements and is built by invoking
+; 'partial-tree recursively and returning a pair consisting of left
+; subtree and the rest of the 'elts (named 'non-left-elts) that are
+; not included in the left subtree.
+;
+; The first element of 'non-left-elts is the root (named 'this-entry)
+; of a balanced binary tree being constructed.
+;
+; The right subtree 'right-result is constructed recursively from the
+; rest (n-1)/2 elements of the 'elts that are neither included in the
+; left sub-tree nor are the root of a current tree.
+;
+; The function then constructs a binary tree by calling a constructor
+; 'make-tree with 'this-entry as a root, 'left-result as left subtree
+; and 'right-result as right subtree.
+
+; The function always returns a pair of the constructed balanced tree
+; and the list consisting of rest of 'elts except the first 'n ones.
+
+; If 'n is equal to 0, the function terminates returning an empty tree
+; and the original list.
+(define (partial-tree elts n)
+  (if (= n 0)
+      (cons '() elts)
+      (let* ((left-size (quotient (- n 1) 2))
+             (left-result (partial-tree elts left-size))
+             (left-tree (car left-result))
+             (non-left-elts (cdr left-result))
+             (right-size (- n (+ left-size 1)))
+             (this-entry (car non-left-elts))
+             (right-result
+                (partial-tree (cdr non-left-elts)
+                              right-size))
+             (right-tree (car right-result))
+                    (remaining-elts (cdr right-result)))
+                (cons (make-tree this-entry
+                                 left-tree
+                                 right-tree)
+                      remaining-elts))))
+
+(define (list->tree elements)
+  (car (partial-tree elements (length elements))))
+
+; Ex. 2.65
+(define (union-set-tree set1 set2)
+  (list->tree (union-set-ord (tree->list-2 set1)
+                             (tree->list-2 set2))))
+
+(define (intersection-set-tree set1 set2)
+  (list->tree (intersection-set-ord (tree->list-2 set1)
+                                    (tree->list-2 set2))))
