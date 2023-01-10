@@ -246,12 +246,23 @@
 (define smiling-wave
   (segments->painter
    (append
-    (list (make-segment (make-vect 0.0 0.0) (make-vect 0.1 0.1)) ; assume these are correct coords :)
+    (list (make-segment (make-vect 0.0 0.0) (make-vect 0.1 0.1)) ; imagine these are not just some random coords :)
           (make-segment (make-vect 0.1 0.1) (make-vect 0.2 0.0)))
     wave-segments)))
 
 ; Ex. 2.51b
-; TODO
+(define (another-corner-split painter n)
+  (if (= n 0)
+      painter
+      (let* ((up (up-split painter (- n 1)))
+             (right (right-split painter (- n 1)))
+             (corner (another-corner-split painter (- n 1))))
+        (beside (below painter up)
+                (below right corner)))))
 
 ; Ex. 2.51c
-; TODO
+(define (another-square-limit painter n)
+  (let* ((flipped-painter (flip-horiz painter))
+         (quarter (corner-split flipped-painter n))
+         (half (beside (flip-horiz quarter) quarter)))
+    (below (flip-vert half) half)))
