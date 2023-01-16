@@ -242,7 +242,7 @@
   (rotate270 (beside (rotate90 painter2)
                      (rotate90 painter1))))
 
-; Ex. 2.51a
+; Ex. 2.52a
 (define smiling-wave
   (segments->painter
    (append
@@ -250,7 +250,7 @@
           (make-segment (make-vect 0.1 0.1) (make-vect 0.2 0.0)))
     wave-segments)))
 
-; Ex. 2.51b
+; Ex. 2.52b
 (define (another-corner-split painter n)
   (if (= n 0)
       painter
@@ -260,7 +260,7 @@
         (beside (below painter up)
                 (below right corner)))))
 
-; Ex. 2.51c
+; Ex. 2.52c
 (define (another-square-limit painter n)
   (let* ((flipped-painter (flip-horiz painter))
          (quarter (corner-split flipped-painter n))
