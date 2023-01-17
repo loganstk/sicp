@@ -96,3 +96,8 @@
 (list 'c 'd)            ; (c d)
 (list 'c d)             ; (c 2)
 '()                     ; () - empty list aka nil
+
+
+; The (apply <proc> <list>) procedure applies the <proc>
+; using the elements in the <list> as arguments.
+(apply + (list 1 2 3 4))       ; 10
