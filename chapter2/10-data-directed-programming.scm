@@ -28,44 +28,40 @@
 (define (get-coercion from-type to-type)
   (get-helper (list from-type to-type) coercion-table))
 
-; Ex. 2.78
+; Tagging utils
 (define (attach-tag type-tag contents)
-  (if (number? contents)
-      contents
-      (cons type-tag contents)))
-
+  (cons type-tag contents))
 (define (type-tag datum)
-     (cond ((pair? datum) (car datum))
-           ((number? datum) 'scheme-number)
-           (else (error "Bad tagged datum: TYPE-TAG" datum))))
-
+  (if (pair? datum)
+      (car datum)
+      (error "Bad tagged datum -- TYPE-TAG" datum)))
 (define (contents datum)
-  (cond ((pair? datum) (cdr datum))
-        ((number? datum) datum)
-        (else (error "Bad tagged datum: CONTENTS" datum))))
+  (if (pair? datum)
+      (cdr datum)
+      (error "Bad tagged datum -- CONTENTS" datum)))
 
 ; Ex. 2.81
-(define (apply-generic op . args)
-  (let ((type-tags (map type-tag args)))
-    (let ((proc (get op type-tags)))
-      (if proc
-          (apply proc (map contents args))
-          (if (= (length args) 2)
-              (let ((type1 (car type-tags))
-                    (type2 (cadr type-tags))
-                    (a1 (car args))
-                    (a2 (cadr args)))
-                (if (not (eq? type1 type2))
-                    (let ((t1->t2 (get-coercion type1 type2))
-                          (t2->t1 (get-coercion type2 type1)))
-                      (cond (t1->t2
-                             (apply-generic op (t1->t2 a1) a2))
-                            (t2->t1
-                             (apply-generic op a1 (t2->t1 a2)))
-                            (else (error "No method for these types"
-                                         (list op type-tags))))))
-              (error "No method for these types"
-                     (list op type-tags))))))))
+;(define (apply-generic op . args)
+;  (let ((type-tags (map type-tag args)))
+;    (let ((proc (get op type-tags)))
+;      (if proc
+;          (apply proc (map contents args))
+;          (if (= (length args) 2)
+;              (let ((type1 (car type-tags))
+;                    (type2 (cadr type-tags))
+;                    (a1 (car args))
+;                    (a2 (cadr args)))
+;                (if (not (eq? type1 type2))
+;                    (let ((t1->t2 (get-coercion type1 type2))
+;                          (t2->t1 (get-coercion type2 type1)))
+;                      (cond (t1->t2
+;                             (apply-generic op (t1->t2 a1) a2))
+;                            (t2->t1
+;                             (apply-generic op a1 (t2->t1 a2)))
+;                            (else (error "No method for these types"
+;                                         (list op type-tags))))))
+;              (error "No method for these types"
+;                     (list op type-tags))))))))
 
 (define (rectangular? z) (eq? (type-tag z) 'rectangular))
 (define (polar? z) (eq? (type-tag z) 'polar))
@@ -267,29 +263,27 @@
 (define (sub x y) (apply-generic 'sub x y))
 (define (mul x y) (apply-generic 'mul x y))
 (define (div x y) (apply-generic 'div x y))
-(define (exp x y) (apply-generic 'exp x y))
 
-; Handling ordinary numbers
-(define (install-scheme-number-package)
-  (define (tag x) (attach-tag 'scheme-number x))
-  (put 'add '(scheme-number scheme-number)
+; Handling integers
+(define (install-integer-package)
+  (define (tag x) (attach-tag 'integer x))
+  (put 'add '(integer integer)
        (lambda (x y) (tag (+ x y))))
-  (put 'sub '(scheme-number scheme-number)
+  (put 'sub '(integer integer)
        (lambda (x y) (tag (- x y))))
-  (put 'mul '(scheme-number scheme-number)
+  (put 'mul '(integer integer)
        (lambda (x y) (tag (* x y))))
-  (put 'div '(scheme-number scheme-number)
+  (put 'div '(integer integer)
        (lambda (x y) (tag (/ x y))))
-  (put 'exp '(scheme-number scheme-number)
-       (lambda (x y) (tag (expt x y))))
-  (put 'equ? '(scheme-number scheme-number)
+  (put 'equ? '(integer integer)
        (lambda (x y) (= x y)))
-  (put '=zero? '(scheme-number)
+  (put '=zero? '(integer)
        (lambda (x) (= x 0)))
-  (put 'make 'scheme-number (lambda (x) (tag x)))
+  (put 'make 'integer (lambda (x) (tag x)))
+;  (put 'raise 'integer (lambda (x) (make-rational x 1)))
   'done)
-(define (make-scheme-number n)
-  ((get 'make 'scheme-number) n))
+(define (make-integer n)
+  ((get 'make 'integer) n))
 
 ; Handling rational numbers
 (define (install-rational-package)
@@ -317,7 +311,6 @@
     (and (= (numer x) (numer y))
          (= (denom x) (denom y))))
   (define (=zero-rat? x) (= (numer x) 0))
-  
   ;; interface to rest of the system
   (define (tag x) (attach-tag 'rational x))
   (put 'add '(rational rational)
@@ -328,14 +321,47 @@
        (lambda (x y) (tag (mul-rat x y))))
   (put 'div '(rational rational)
        (lambda (x y) (tag (div-rat x y))))
+  (put 'numer 'rational numer)
+  (put 'denom 'rational denom)
   (put 'equ? '(rational rational) equ-rat?)
   (put '=zero? '(rational)
        (lambda (x) (=zero-rat? x)))
   (put 'make 'rational
        (lambda (n d) (tag (make-rat n d))))
+;  (put 'raise 'rational
+;       (lambda (x) (make-real (/ (numer x) (denom x)))))
   'done)
+; Rational public proc
 (define (make-rational n d)
   ((get 'make 'rational) n d))
+(define (numer x)
+  ((get 'numer 'rational) x))
+(define (denom x)
+  ((get 'denom 'rational) x))
+
+; Handling real numbrers
+(define (install-real-package)
+  (define (tag x) (attach-tag 'real x))
+  (put 'add '('real 'real)
+       (lambda (x y) (tag (+ x y))))
+  (put 'sub '('real 'real)
+       (lambda (x y) (tag (- x y))))
+  (put 'mul '('real 'real)
+       (lambda (x y) (tag (* x y))))
+  (put 'div '('real 'real)
+       (lambda (x y) (tag (/ x y))))
+  (put 'exp '('real 'real)
+       (lambda (x y) (tag (expt x y))))
+  (put 'equ? '('real 'real)
+       (lambda (x y) (= x y)))
+  (put '=zero? '('real)
+       (lambda (x) (= x 0)))
+  (put 'make 'real (lambda (x) (tag x)))
+;  (put 'raise 'real
+;       (lambda (x) (make-complex-from-real-imag x 0)))
+  'done)
+(define (make-real n)
+  ((get 'make 'real) n))
 
 ; Handling complex numbers
 (define (install-complex-package)
@@ -373,9 +399,11 @@
   (put 'equ? '(complex complex) equ-complex?)
   (put '=zero? '(complex)
        (lambda (z) (=zero? z))) ; delegating to polar and rectangular packages for optimization
-                                ; 
   (put 'make-from-real-imag 'complex
        (lambda (x y) (tag (make-from-real-imag x y))))
+  (put 'raise 'real
+       (lambda (x) (tag (make-from-real-imag x 0))))
+  ; (put 'raise 'complex (lambda (x) (tag x)))
   (put 'make-from-mag-ang 'complex
        (lambda (r a) (tag (make-from-mag-ang r a))))
   (put 'real-part '(complex) real-part)
@@ -389,8 +417,9 @@
   ((get 'make-from-mag-ang 'complex) r a))
 
 ; Install packages
-(install-scheme-number-package)
+(install-integer-package)
 (install-rational-package)
+(install-real-package)
 (install-rectangular-package)
 (install-polar-package)
 (install-complex-package)
@@ -399,27 +428,31 @@
 ; (define z (make-complex-from-real-imag 3 4))
 ; (magnitude z)
 
-; 'apply-generic is called twice: first to lacate the generic 'magnitude procedure
+; 'apply-generic is called twice: first to locate the generic 'magnitude procedure
 ; for a complex number, and second time to find the representation-specific
 ; version installed as part of polar or rectangular packages.
 
-; Ex. 2.78 - see line 24
+; Ex. 2.78
+; (define (attach-tag type-tag contents)
+;   (if (number? contents)
+;       contents
+;       (cons type-tag contents)))
+;
+; (define (type-tag datum)
+;      (cond ((pair? datum) (car datum))
+;            ((number? datum) 'scheme-number)
+;           (else (error "Bad tagged datum: TYPE-TAG" datum))))
+;
+; (define (contents datum)
+;   (cond ((pair? datum) (cdr datum))
+;         ((number? datum) datum)
+;         (else (error "Bad tagged datum: CONTENTS" datum))))
 
 ; Ex. 2.79
 (define (equ? x y)
   (if (eq? (type-tag x) (type-tag y))
       (apply-generic 'equ? x y)
       false))
-
-; Tests
-; > (equ? (make-scheme-number 3) (make-scheme-number 3))
-; #t
-; > (equ? (make-rational 3 4) (make-rational 6 8))
-; #t
-; > (equ? (make-complex-from-real-imag 3 4) (make-rational 3 4))
-; #f
-; > (equ? (make-complex-from-real-imag 1 0) (make-complex-from-mag-ang 1 0))
-; #t
 
 ; Ex. 2.80
 (define (=zero? x) (apply-generic '=zero? x))
@@ -430,3 +463,57 @@
 (put-coercion 'scheme-number
               'complex
               scheme-number->complex)
+
+; Ex. 2.83
+; We have 2 options here:
+;   (a) embed the "type casting" into the correspoing number packages,
+;       so that each type is responsible for raising itself to the upper level
+;       in the hierarchy. When adding a new type one should simply define the
+;       procedure to raise it to the next known supertype, so that generic operations
+;       on two numbers can be performed after a few iterations of raising.
+; (define (raise obj)
+;  ((get 'raise (type-tag obj)) (contents obj)))
+; Or
+;   (b) define the type system outside the number packages, making it an
+;       independent concern. Authors of the book seem to be giving a bold hint
+;       toward this approach. In fact, this allows us to use any number package
+;       in isolation without knowing about any of its super/subtypes. Another
+;       advantage is that all the type hierarchy information and casting operations
+;       are  grouped within the single component and no changes to original
+;       number packages are required if we want to add a new cast rule.
+
+(define (integer->rational x) (make-rational x 1))
+(define (rational->real x) (make-real (/ (numer x) (denom x))))
+(define (real->complex x) (make-complex-from-real-imag x 0))
+
+(put-coercion 'integer 'rational integer->rational)
+(put-coercion 'rational 'real rational->real)
+(put-coercion 'real 'complex real->complex)
+
+(define type-hierarchy '(integer rational real complex))
+
+(define (raise x)
+  (let* ((from-type (type-tag x))
+         (to-type (cadr
+                   (memq from-type type-hierarchy))))
+    (if (null? to-type)
+        x
+        (let ((coercion-proc (get-coercion from-type to-type)))
+          (if coercion-proc
+              (coercion-proc (contents x))
+              (error "No coercion for these types -- RAISE"
+               (list from-type to-type)))))))
+
+; Ex. 2.84 WIP
+(define (raise-to type x)
+  (let ((source-type (type-tag x)))
+    (if (eq? source-type type)
+        x
+        (raise-to type (raise x)))))
+
+; Checks whether type 'x is a subtype of 'type
+(define (subtype? x type)
+  (let ((rest (memq x type-hierarchy)))
+    (if (list? rest)
+        (memq type rest)
+        (error "Type is not part of hierarchy -- SUBTYPE" x))))
