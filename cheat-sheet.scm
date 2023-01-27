@@ -1,4 +1,7 @@
-#lang sicp ; This file can be interpreted by DrRacket
+; Revised5 Report on the Algorithmic Language Scheme
+; https://conservatory.scheme.org/schemers/Documents/Standards/R5RS/r5rs.pdf
+
+#lang sicp ; This file can be interpreted in racket
 
 ; Combinations
 ; (operator operand1 operand2 ...operandN)
