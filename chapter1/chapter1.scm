@@ -67,9 +67,22 @@
   (if (= x 0) 0 y))
 
 ; Ex. 1.6
-(define (new-if predicate then-clause else-clause)
-  (cond (predicate then-clause)
-        (else (else-clause))))
+; Won't work, because both then-clause and else-clause
+; are evaluated when before new-if is applied.
+;
+; (define (new-if predicate then-clause else-clause)
+;   (cond (predicate then-clause)
+;         (else (else-clause))))
+;
+; But we could achieve the desired behavior if then-clause
+; and else-clause were λ-expressions:
+; (define (new-if predicate then-clause else-clause)
+;   (cond (predicate (then-clause))
+;         (else (else-clause))))
+;
+; (new-if (zero? 5) 
+;         (lambda () (display "true")) 
+;         (lambda () (display "false")))
 
 ; Ex. 1.7
 ; Square root calculation
@@ -165,26 +178,26 @@
        (+ (pascal (- row 1) (- col 1)) (pascal (- row 1) col))))
 
 ; Exponentiation
-(define (exp x n)
+(define (expt x n)
   (if (zero? n)
       1
       (* x (exp x (- n 1)))))
 
-(define (fast-exp x n)
+(define (fast-expt x n)
   (cond ((zero? n) 1)
-        ((even? n) (square (fast-exp x (/ n 2))))
-        (else (* x (fast-exp x (- n 1))))))
+        ((even? n) (square (fast-expt x (/ n 2))))
+        (else (* x (fast-expt x (- n 1))))))
 
-(define (expt x n)
+(define (exp x n)
   (if (> n 0)
-      (fast-exp x n)
-      (/ 1 (fast-exp x (- n)))))
+      (fast-expt x n)
+      (/ 1 (fast-expt x (- n)))))
 
 ; Ex. 1.16
-(define (fast-exp-iter acc x n)
+(define (fast-expt-iter acc x n)
   (cond ((zero? n) acc)
-        ((even? n) (fast-exp-iter acc (square x) (/ n 2)))
-        (else (fast-exp-iter (* acc x) x (- n 1)))))
+        ((even? n) (fast-expt-iter acc (square x) (/ n 2)))
+        (else (fast-expt-iter (* acc x) x (- n 1)))))
 
 ; Ex. 1.17
 (define (double x) (* x 2))
@@ -224,30 +237,160 @@
       a
       (gcd b (remainder a b))))
 
-(define (sum term a next b)
-  (if (> a b) 0
-      (+ (term a)
-         (sum term (next a) next b))))
+; Testing for primality
+(define (divides? a b) (= (remainder b a) 0))
 
-(define (inc n) (+ n 1))
+(define (find-divisor n test-divisor)
+  (cond ((> (square test-divisor) n) n)
+        ((divides? test-divisor n) test-divisor)
+        (else (find-divisor n (next test-divisor)))))
 
-(define (sum-cubes a b)
-  (sum cube a inc b))
+(define (smallest-divisor n) (find-divisor n 2))
 
-(define (identity x) x)
+(define (prime? n)
+  (= n (smallest-divisor n)))
 
-(define (sum-integers a b)
-  (sum identity a inc b))
+; The Fermat test
+(define (expmod base exp m)
+  (cond ((zero? exp) 1)
+        ((even? exp)
+         (remainder 
+          (square (expmod base (/ exp 2) m))
+          m))
+        (else
+         (remainder
+          (* base (expmod base (- exp 1) m))
+          m))))
 
-(define (pi-sum a b)
-  (define (pi-term x)
-    (/ 1.0 (* x (+ x 2))))
-  (define (pi-next x)
-    (+ x 4))
-  (sum pi-term a pi-next b))
+(define (fermat-test n)
+  (define (try-it a)
+    (= (expmod a n n) a))
+  (try-it (+ 1 (random (- n 1)))))
 
-(define (integral f a b dx)
-  (define (add-dx x)
-    (+ x dx))
-  (* (sum f (+ a (/ dx 2)) add-dx b)
-     dx))
+(define (fast-prime? n times)
+  (cond ((zero? times) true)
+        ((fermat-test n) (fast-prime? n (- times 1)))
+        (else false)))
+
+; Ex. 1.21
+; (smallest-divisor 199)
+; 199
+; (smallest-divisor 1999)
+; 1999
+; (smallest-divisor 19999)
+; 7
+
+; Ex. 1.22
+(define (start-prime-test n start-time)
+  (if (prime? n)
+      (report-prime (- (runtime) start-time))
+      false))
+
+(define (report-prime elapsed-time)
+  (display " *** ")
+  (display elapsed-time)
+  true)
+
+(define (timed-prime-test n)
+  (newline)
+  (display n)
+  (start-prime-test n (runtime)))
+
+(define (search-for-primes count n)
+  (cond ((zero? count)
+         (newline)
+         (display "done"))
+        ((even? n) 
+         (search-for-primes count (+ n 1)))
+        ((timed-prime-test n)
+         (search-for-primes (- count 1) (+ n 2)))
+        (else (search-for-primes count (+ n 2)))))
+
+; Ex. 1.23
+(define (next n)
+  (if (= n 2) 
+      3 
+      (+ n 2)))
+
+; Ex. 1.24
+(define (start-fast-prime-test n start-time)
+  (if (fast-prime? n 10)
+      (report-prime (- (runtime) start-time))
+      false))
+
+; Ex. 1.25
+; In the previous expmod implementation we are relying on the
+; property demonstrated in Footnote 1.46. Thus we don't have to 
+; deal with extra large numbers.
+;
+; (define (expmod base exp m)
+;  (remainder (fast-expt base exp) m))
+
+; Ex. 1.26
+; Louis' expmod procedure calls itself twice every time 
+; thus doubling the amount of work it has to perform, so its 
+; complexity becomes O(log (2^n)) == O(n).
+;
+; (define (expmod base exp m)
+;   (cond ((= exp 0) 1)
+;         ((even? exp)
+;          (remainder (* (expmod base (/ exp 2) m)
+;                        (expmod base (/ exp 2) m))
+;           m))
+;         (else
+;          (remainder (* base
+;                        (expmod base (- exp 1) m))
+;           m))))
+;
+; He could fix this by storing the result of the first call to expmod.
+;
+; (define (expmod base exp m)
+;   (cond ((= exp 0) 1)
+;         ((even? exp)
+;           (let (partial (expmod base (/ exp 2) m))
+;             (remainder (* partial partial)
+;                     m)))
+;         (else
+;          (remainder (* base
+;                        (expmod base (- exp 1) m))
+;           m))))
+
+; Ex. 1.27
+(define (verify-carmichael-num n)
+  (define (try-it a)
+    (cond ((= a n) true)
+          ((= (expmod a n n) a)
+           (try-it (+ a 1)))
+          (else false)))
+  (try-it 1))
+
+; Ex. 1.28
+; 561, 1105, 1729, 2465, 2821, and 6601
+; The book has a typo: a 'non-trivial-root' x
+; must be congruent 1 mod n, not equal to 1 mod n.
+(define (miller-rabin-test n)
+  (define (non-trivial-root? x)
+    (and (not (= x 1))
+         (not (= x (- n 1)))
+         (= (remainder 1 n) 
+            (remainder (square x) n)))) 
+
+  (define (expmod base exp m)
+    (cond ((zero? exp) 1)
+          ((even? exp)
+           (let ((x (expmod base (/ exp 2) m)))
+             (if (non-trivial-root? x)
+                 0
+                 (remainder (square x) m))))
+          (else
+          (remainder
+            (* base (expmod base (- exp 1) m))
+            m))))
+  (define (try-it a)
+    (= (expmod a n n) a))
+  (try-it (+ 1 (random (- n 1)))))
+
+(define (do-miller-rabin n times)
+  (cond ((zero? times) true)
+        ((miller-rabin-test n) (do-miller-rabin n (- times 1)))
+        (else false)))

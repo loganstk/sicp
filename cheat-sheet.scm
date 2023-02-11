@@ -41,7 +41,7 @@
 (not #t)                ; #f
 
 ; Creating anonymous procedures - labmda special form
-; (lambda (<formal-parameters>) (<body>)
+; (lambda (<formal-parameters>) (<body>))
 
 (lambda (x) (+ x 4)) ; the procedure that returns its input incremented by 4
 (lambda (x) (/ 1.0 (* x (+ x 2)))) ; the procedure that returns the reciprocal of its input times its input plus 2
