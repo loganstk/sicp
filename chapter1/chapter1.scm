@@ -32,10 +32,10 @@
       x))
 
 ; Recursion
-(define (factorial x)
-  (if (= x 1)
-      1
-      (* x (factorial (- x 1)))))
+; (define (factorial x)
+;   (if (= x 1)
+;       1
+;       (* x (factorial (- x 1)))))
 
 ; (factorial 5)
 
@@ -68,7 +68,7 @@
 
 ; Ex. 1.6
 ; Won't work, because both then-clause and else-clause
-; are evaluated when before new-if is applied.
+; are evaluated before new-if is applied.
 ;
 ; (define (new-if predicate then-clause else-clause)
 ;   (cond (predicate then-clause)
@@ -394,3 +394,150 @@
   (cond ((zero? times) true)
         ((miller-rabin-test n) (do-miller-rabin n (- times 1)))
         (else false)))
+
+; 1.3 Formulating Abstractions with Higher-Order Procedures
+
+; (define (sum-integers a b)
+;   (if (> a b)
+;       0
+;       (+ a (sum-integers (+ a 1) b))))
+;
+; (define (sum-cubes a b)
+;   (if (> a b)
+;       0
+;       (+ (cube a)
+;          (sum-cubes (+ a 1) b))))
+;
+; (define (pi-sum a b)
+;   (if (> a b)
+;       0
+;       (+ (/ 1.0 (* a (+ a 2)))
+;          (pi-sum (+ a 4) b))))
+
+(define (sum term a next b)
+  (if (> a b)
+      0
+      (+ (term a)
+         (sum term (next a) next b))))
+
+(define (inc x) (+ x 1))
+
+(define (sum-of-cubes a b)
+  (sum cube a inc b))
+
+(define (identity x) x)
+
+(define (sum-integers a b)
+  (sum identity a inc b))
+
+(define (pi-sum a b)
+  (sum (lambda (x) (/ 1.0 (* x (+ x 2))))
+       a
+       (lambda (x) (+ x 4))
+       b))
+
+(define (integral f a b dx)
+  (* (sum f 
+          (+ a (/ dx 2.0)) 
+          (lambda (x) (+ x dx)) 
+          b)
+     dx))
+
+; Ex. 1.29
+(define (simpson-integral f a b n)
+  (define (coef k)
+    (cond ((or (zero? k) (= k n)) 1)
+          ((even? k) 2)
+          (else 4)))
+
+  (let ((h (/ (- b a) n)))
+    (define (term k) (* (coef k)
+                     (f (+ a (* k h)))))
+    (/ (* h (sum term 0 inc n)) 
+        3)))
+
+; Ex. 1.30
+(define (sum-iter term a next b)
+  (define (iter a result)
+    (if (> a b)
+        result
+        (iter (next a)
+              (+ (term a)
+                  result))))
+  (iter a 0))
+
+; Ex. 1.31
+(define (product term a next b)
+  (if (> a b)
+      1
+      (* (term a)
+         (product term (next a) next b))))
+
+(define (factorial n)
+  (product identity 1 inc n))
+
+(define (pi-product n)
+  (define (term x)
+    (let ((double (* 2 x)))
+          (* (/ double
+                (- double 1))
+              (/ double
+                (+ double 1)))))
+  (* (product term 1.0 inc n)
+     2))
+
+(define (product-iter term a next b)
+  (define (iter a result)
+    (if (> a b)
+        result
+        (iter (next a) 
+              (* (term a)
+                 result))))
+  (iter a 1))
+
+; Ex. 1.32
+(define (accumulate combiner null-value term a next b)
+  (if (> a b) 
+      null-value
+      (combiner (term a)
+                (accumulate combiner
+                            null-value
+                            term
+                            (next a)
+                            next
+                            b))))
+
+(define (add x y) (+ x y))
+(define (sum-acc term a next b)
+  (accumulate add 0 term a next b))
+
+(define (mult x y) (* x y))
+(define (product-acc term a next b)
+  (accumulate mult 1 term a next b))
+
+(define (accumulate-iter combiner null-value term a next b)
+  (define (iter a result)
+    (if (> a b)
+        result
+        (iter (next a)
+              (combiner (term a)
+                        result))))
+  (iter a null-value))
+
+; Ex. 1.33
+(define (filtered-accumulate combiner null-value filter term a next b)
+  (define (iter a result)
+    (cond ((> a b) result)
+          ((filter a)
+           (iter (next a)
+                 (combiner (term a)
+                           result)))
+          (else (iter (next a) result))))
+  (iter a null-value))
+
+(define (sum-prime-squares a b)
+  (filtered-accumulate add 0 prime? square a inc b))
+
+(define (product-relative-primes n)
+  (define (rel-prime? x) (= (gcd x n) 1))
+  (filtered-accumulate mult 1 rel-prime? identity 1 inc n))
