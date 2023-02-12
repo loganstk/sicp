@@ -421,6 +421,7 @@
          (sum term (next a) next b))))
 
 (define (inc x) (+ x 1))
+(define (dec x) (- x 1))
 
 (define (sum-of-cubes a b)
   (sum cube a inc b))
@@ -541,3 +542,195 @@
 (define (product-relative-primes n)
   (define (rel-prime? x) (= (gcd x n) 1))
   (filtered-accumulate mult 1 rel-prime? identity 1 inc n))
+
+; Ex. 1.34
+; The function f cannot be applied to the argument 2
+; because 2 is not a function that could be applied.
+
+; Half-interval method
+(define (search f neg-point pos-point)
+  (let ((midpoint (average neg-point pos-point)))
+    (if (close-enough? neg-point pos-point)
+        midpoint
+        (let ((test-value (f midpoint)))
+          (cond ((positive? test-value)
+                 (search f neg-point midpoint))
+                ((negative? test-value)
+                 (search f midpoint pos-point))
+                (else midpoint))))))
+
+(define (close-enough? x y) (< (abs (- x y)) 0.001))
+
+(define (half-interval-method f a b)
+  (let ((a-value (f a))
+        (b-value (f b)))
+    (cond ((and (negative? a-value) (positive? b-value))
+           (search f a b))
+          ((and (negative? b-value) (positive? a-value))
+           (search f b a))
+          (else
+           (error "Values are not of opposite sign" a b)))))
+
+; Fixed points of a function
+(define (fixed-point f first-guess)
+  (define (close-enough? v1 v2)
+    (< (abs (- v1 v2))
+       tolerance))
+  (define (try guess)
+    (let ((next (f guess)))
+      (if (close-enough? guess next)
+          next
+          (try next))))
+  (try first-guess))
+
+; Ex. 1.35
+(define (phi) (fixed-point (lambda (x) (+ 1 (/ 1 x)))
+                           1.0))
+
+; Ex. 1.36
+; (fixed-point (lambda (x) (/ (log 1000) (log x)))
+;              1.5)
+; (newline)
+; (fixed-point (lambda (x) (average x (/ (log 1000) (log x))))
+;              1.5)
+
+; Ex. 1.37
+(define (cont-frac n d k)
+  (define (helper n d i)
+    (if (= i k)
+        0
+        (/ (n i)
+           (+ (d i)
+              (helper n d (inc i))))))
+  (helper n d 1.0))
+
+  (define (cont-frac-iter n d k)
+    (define (iter i result)
+      (if (zero? i)
+          result
+          (iter (dec i)
+                (/ (n i)
+                   (+ (d i)
+                      result)))))
+    (iter k 0))
+
+; Ex. 1.38
+(define (euler-expansion k)
+  (define (d i)
+    (cond ((= i 1) 1)
+          ((= i 2) 2)
+          (else
+           (if (= (remainder i 3) 2)
+               (* (+ 1 (quotient i 3)) 2)
+               1))))
+  (cont-frac-iter (lambda (i) 1.0) d k))
+
+(define euler-num (+ 2 (euler-expansion 10)))
+
+; Ex. 1.39
+(define (tan-cf x k)
+  (cont-frac
+   (lambda (i) (if (= i 1)
+                   x
+                   (- (square x))))
+   (lambda (i) (- (* 2 i) 1))
+   k))
+
+; 1.3.4 Procedures as Returned Values
+(define (average-damp f)
+  (lambda (x) (average x (f x))))
+
+(define (sqrt-fixed-point x)
+  (fixed-point (average-damp (lambda (y) (/ x y)))
+               1.0))
+
+(define (cube-root-fixed-point x)
+  (fixed-point (average-damp (lambda (y) (/ x (square y))))
+               1.0))
+
+; Newton's method
+(define dx 0.00001)
+
+(define (deriv g)
+  (lambda (x) (/ (- (g (+ x dx)) (g x)) dx)))
+
+(define (newton-transofrm g)
+  (lambda (x) (- x (/ (g x) ((deriv g) x)))))
+
+(define (newtons-method g guess)
+  (fixed-point (newton-transofrm g) guess))
+
+(define (sqrt-newton x)
+  (newtons-method
+   (lambda (y) (- (square y) x)) 1.0))
+
+; Ex. 1.40
+(define (cubic a b c)
+  (lambda (x)
+   (+ (cube x)
+      (* a (square x))
+      (* b x)
+      c)))
+
+; (newtons-method (cubic 1 2 3) 1)
+
+; Ex. 1.41
+(define (apply-double f) 
+  (lambda (x) (f (f x))))
+
+; (((apply-double (apply-double apply-double)) inc) 5)
+
+; Ex. 1.42
+(define (compose f g)
+  (lambda (x) (f (g x))))
+
+; ((compose square inc) 6)
+
+; Ex. 1.43
+(define (repeated f n)
+  (cond ((= n 0) identity)
+        ((even? n) (repeated (apply-double f) (/ n 2)))
+        (else (compose f (repeated f (- n 1))))))
+
+; Ex. 1.44
+(define (smooth f)
+  (lambda (x)
+    (/ (+ (f (- x dx))
+          (f x)
+          (f (+ x dx)))
+        3)))
+
+(define (smooth-repeatedly f n)
+  ((repeated smooth n) f))
+
+; Ex. 1.45
+(define (nth-root x n)
+  (define (damping-order i)
+    (floor (/ (log i) (log 2))))
+  (fixed-point ((repeated average-damp
+                          (damping-order n)) 
+                (lambda (y) (/ x (expt y (- n 1)))))
+               1.0))
+
+; Ex. 1.46
+(define (iterative-improve good-enuf? improve)
+  (lambda (guess)
+   (if (good-enuf? guess (improve guess))
+       guess
+       ((iterative-improve good-enuf? improve)
+        (improve guess)))))
+
+(define (sqrt-iter x)
+  (define (good-enough? prev-guess guess)
+    (< (/ (abs (- guess prev-guess)) guess) tolerance))
+  (define (improve guess)
+    (average guess (/ x guess)))
+  ((iterative-improve good-enough? improve) 1.0))
+
+(define (fixed-point-iter f init-guess)
+  (define (close-enough? v1 v2)
+    (< (abs (- v1 v2))
+       tolerance))
+  ((iterative-improve close-enough? f) init-guess))
+
+  'DONE
