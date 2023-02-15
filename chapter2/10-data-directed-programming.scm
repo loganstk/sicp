@@ -40,29 +40,6 @@
       (cdr datum)
       (error "Bad tagged datum -- CONTENTS" datum)))
 
-; Ex. 2.81
-;(define (apply-generic op . args)
-;  (let ((type-tags (map type-tag args)))
-;    (let ((proc (get op type-tags)))
-;      (if proc
-;          (apply proc (map contents args))
-;          (if (= (length args) 2)
-;              (let ((type1 (car type-tags))
-;                    (type2 (cadr type-tags))
-;                    (a1 (car args))
-;                    (a2 (cadr args)))
-;                (if (not (eq? type1 type2))
-;                    (let ((t1->t2 (get-coercion type1 type2))
-;                          (t2->t1 (get-coercion type2 type1)))
-;                      (cond (t1->t2
-;                             (apply-generic op (t1->t2 a1) a2))
-;                            (t2->t1
-;                             (apply-generic op a1 (t2->t1 a2)))
-;                            (else (error "No method for these types"
-;                                         (list op type-tags))))))
-;              (error "No method for these types"
-;                     (list op type-tags))))))))
-
 (define (rectangular? z) (eq? (type-tag z) 'rectangular))
 (define (polar? z) (eq? (type-tag z) 'polar))
 
@@ -464,6 +441,12 @@
               'complex
               scheme-number->complex)
 
+; Ex. 2.81
+; See Ex. 2.84
+
+; Ex. 2.82
+; Maybe later
+
 ; Ex. 2.83
 ; We have 2 options here:
 ;   (a) embed the "type casting" into the correspoing number packages,
@@ -479,7 +462,7 @@
 ;       toward this approach. In fact, this allows us to use any number package
 ;       in isolation without knowing about any of its super/subtypes. Another
 ;       advantage is that all the type hierarchy information and casting operations
-;       are  grouped within the single component and no changes to original
+;       are  grouped within the single component and no changes to the original
 ;       number packages are required if we want to add a new cast rule.
 
 (define (integer->rational x) (make-rational x 1))
@@ -492,28 +475,41 @@
 
 (define type-hierarchy '(integer rational real complex))
 
-(define (raise x)
-  (let* ((from-type (type-tag x))
-         (to-type (cadr
-                   (memq from-type type-hierarchy))))
-    (if (null? to-type)
-        x
-        (let ((coercion-proc (get-coercion from-type to-type)))
-          (if coercion-proc
-              (coercion-proc (contents x))
-              (error "No coercion for these types -- RAISE"
-               (list from-type to-type)))))))
+(define (raise obj)
+  (let* ((src-type (type-tag obj))
+         (upper-types (memq src-type type-hierarchy)))
+    (if upper-types
+        (if (null? (cdr upper-types))
+            obj
+            (let* ((target-type (cadr upper-types))
+                   (src->target (get-coercion src-type target-type)))
+              (if src->target
+                  (src->target (contents obj))
+                  (error "No coercion method for these types"
+                    (list src-type target-type)))))
+        (error "Type is not part of a hierarchy" src-type))))
 
-; Ex. 2.84 WIP
-(define (raise-to type x)
-  (let ((source-type (type-tag x)))
-    (if (eq? source-type type)
-        x
-        (raise-to type (raise x)))))
+; Ex. 2.84
+(define (subtype? type1 type2)
+  (let ((upper-types (memq type1 type-hierarchy)))
+    (if upper-types
+        (memq type2 (cdr upper-types))
+        false)))
 
-; Checks whether type 'x is a subtype of 'type
-(define (subtype? x type)
-  (let ((rest (memq x type-hierarchy)))
-    (if (list? rest)
-        (memq type rest)
-        (error "Type is not part of hierarchy -- SUBTYPE" x))))
+(define (apply-generic op . args)
+ (let ((type-tags (map type-tag args)))
+   (let ((proc (get op type-tags)))
+     (if proc
+         (apply proc (map contents args))
+         (if (= (length args) 2)
+             (let ((type1 (car type-tags))
+                   (type2 (cadr type-tags))
+                   (a1 (car args))
+                   (a2 (cadr args)))
+               (cond ((subtype? type1 type2)
+                      (apply-generic op (raise a1) a2))
+                     ((subtype? type2 type1)
+                      (apply-generic op a1 (raise a2)))
+                     (else (error "Cannot cast types" type-tags))))
+             (error "No method for these types"
+                    (list op type-tags)))))))
