@@ -427,9 +427,8 @@
 
 ; Ex. 2.79
 (define (equ? x y)
-  (if (eq? (type-tag x) (type-tag y))
-      (apply-generic 'equ? x y)
-      false))
+  (and (eq? (type-tag x) (type-tag y))
+       (apply-generic 'equ? x y)))
 
 ; Ex. 2.80
 (define (=zero? x) (apply-generic '=zero? x))
@@ -477,17 +476,36 @@
 
 (define (raise obj)
   (let* ((src-type (type-tag obj))
-         (upper-types (memq src-type type-hierarchy)))
+         (target-type (direct-supertype src-type))
+         (src->target (get-coercion src-type target-type)))
+    (cond ((eq? src-type target-type) obj)
+          (src->target (src->target (contents obj)))
+          (else 
+            (error "No coercion method for these types"
+              (list src-type target-type))))))
+
+(define (raise-to obj type)
+  (define (iter x)
+    (if (eq? (type-tag x) type)
+        x
+        (iter (raise x))))
+  (iter obj))
+
+(define (direct-supertype type)
+  (let ((upper-types (memq type type-hierarchy)))
     (if upper-types
         (if (null? (cdr upper-types))
-            obj
-            (let* ((target-type (cadr upper-types))
-                   (src->target (get-coercion src-type target-type)))
-              (if src->target
-                  (src->target (contents obj))
-                  (error "No coercion method for these types"
-                    (list src-type target-type)))))
-        (error "Type is not part of a hierarchy" src-type))))
+            type
+            (cadr upper-types))
+        (error "Type is not part of a hierarchy" type))))
+
+(define (direct-subtype type)
+  (let ((lower-types (memq type (reverse type-hierarchy))))
+    (if lower-types
+        (if (null? (cdr lower-types))
+            type
+            (cadr lower-types))
+        (error "Type is not part of a hierarchy"))))
 
 ; Ex. 2.84
 (define (subtype? type1 type2)
@@ -497,19 +515,59 @@
         false)))
 
 (define (apply-generic op . args)
- (let ((type-tags (map type-tag args)))
-   (let ((proc (get op type-tags)))
-     (if proc
-         (apply proc (map contents args))
-         (if (= (length args) 2)
-             (let ((type1 (car type-tags))
-                   (type2 (cadr type-tags))
-                   (a1 (car args))
-                   (a2 (cadr args)))
-               (cond ((subtype? type1 type2)
-                      (apply-generic op (raise a1) a2))
-                     ((subtype? type2 type1)
-                      (apply-generic op a1 (raise a2)))
-                     (else (error "Cannot cast types" type-tags))))
-             (error "No method for these types"
-                    (list op type-tags)))))))
+ (define (do-apply)
+  (let ((type-tags (map type-tag args)))
+    (let ((proc (get op type-tags)))
+      (if proc
+          (apply proc (map contents args))
+          (if (= (length args) 2)
+              (let ((type1 (car type-tags))
+                    (type2 (cadr type-tags))
+                    (a1 (car args))
+                    (a2 (cadr args)))
+                (cond ((subtype? type1 type2)
+                        (apply-generic op (raise-to a1 type2) a2))
+                      ((subtype? type2 type1)
+                        (apply-generic op a1 (raise-to a2 type1)))
+                      (else (error "Cannot cast types" type-tags))))
+              (error "No method for these types"
+                      (list op type-tags)))))))
+  (let ((result (do-apply)))
+    (if (pair? result)
+        (drop result)
+        result)))
+
+; Ex. 2.85
+(define (complex->real x) (make-real (real-part x)))
+
+(define (real->rational x)
+  (let ((rat (rationalize x 0.1)))
+    (make-rational
+      (inexact->exact (numerator rat))
+      (inexact->exact (denominator rat )))))
+
+(define (rational->integer x)
+  (make-integer 
+    (round (/ (numer x) (denom x)))))
+
+(put-coercion 'complex 'real complex->real)
+(put-coercion 'real 'rational real->rational)
+(put-coercion 'rational 'integer rational->integer)
+
+(define (project obj)
+  (let* ((src-type (type-tag obj))
+         (target-type (direct-subtype src-type))
+         (src->target (get-coercion src-type target-type)))
+    (cond ((eq? src-type target-type) obj)
+          (src->target (src->target (contents obj)))
+          (else
+            (error "No coercion method for these types"
+              (list src-type target-type))))))
+
+(define (drop obj)
+  (define (try-drop projection fallback)
+    (if (equ? (raise-to projection (type-tag obj))
+              obj)
+        (try-drop (project projection) projection)
+        fallback))
+  (try-drop (project obj) obj))
