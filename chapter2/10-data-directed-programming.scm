@@ -43,8 +43,6 @@
 (define (rectangular? z) (eq? (type-tag z) 'rectangular))
 (define (polar? z) (eq? (type-tag z) 'polar))
 
-(define (square x) (* x x))
-
 ; Rectangular
 (define (install-rectangular-package)
   ;; internal procedures
@@ -52,15 +50,15 @@
   (define (imag-part z) (cdr z))
   (define (make-from-real-imag x y) (cons x y))
   (define (magnitude z)
-    (sqrt (+ (square (real-part z))
-             (square (imag-part z)))))
+    (square-root (add (square (real-part z))
+                      (square (imag-part z)))))
   (define (angle z)
-    (atan (imag-part z) (real-part z)))
-  (define (=zero? z)
-    (and (= (real-part z) 0)
-         (= (imag-part z) 0)))
+    (arctan (div (imag-part z) (real-part z))))
+  (define (=zero-rect? z)
+    (and (=zero? (real-part z))
+         (=zero? (imag-part z))))
   (define (make-from-mag-ang r a)
-    (cons (* r (cos a)) (* r (sin a))))
+    (cons (mul r (cosine a)) (mul r (sine a))))
   
   ;; interface to the rest of the system
   (define (tag x) (attach-tag 'rectangular x))
@@ -68,7 +66,7 @@
   (put 'imag-part '(rectangular) imag-part)
   (put 'magnitude '(rectangular) magnitude)
   (put 'angle '(rectangular) angle)
-  (put '=zero? '(rectangular) =zero?)
+  (put '=zero? '(rectangular) =zero-rect?)
   (put 'make-from-real-imag 'rectangular
        (lambda (x y) (tag (make-from-real-imag x y))))
   (put 'make-from-mag-ang 'rectangular
@@ -81,19 +79,19 @@
   (define (magnitude z) (car z))
   (define (angle z) (cdr z))
   (define (make-from-mag-ang r a) (cons r a))
-  (define (real-part z) (* (magnitude z) (cos (angle z))))
-  (define (imag-part z) (* (magnitude z) (sin (angle z))))
-  (define (=zero? z) (= (magnitude z) 0))
+  (define (real-part z) (mul (magnitude z) (cosine (angle z))))
+  (define (imag-part z) (mul (magnitude z) (sine (angle z))))
+  (define (=zero-polar? z) (=zero? (magnitude z)))
   (define (make-from-real-imag x y)
-    (cons (sqrt (+ (square x) (square y)))
-          (atan y x)))
+    (cons (square-root (add (square x) (square y)))
+          (arctan (div y x))))
   ;; interface to the rest of the system
   (define (tag x) (attach-tag 'polar x))
   (put 'real-part '(polar) real-part)
   (put 'imag-part '(polar) imag-part)
   (put 'magnitude '(polar) magnitude)
   (put 'angle '(polar) angle)
-  (put '=zero? '(polar) =zero?)
+  (put '=zero? '(polar) =zero-polar?)
   (put 'make-from-real-imag 'polar
        (lambda (x y) (tag (make-from-real-imag x y))))
   (put 'make-from-mag-ang 'polar
@@ -106,23 +104,23 @@
 (define (magnitude z) (apply-generic 'magnitude z))
 (define (angle z) (apply-generic 'angle z))
 
-(define (make-from-real-imag x y)
-  ((get 'make-from-real-imag 'rectangular) x y))
-(define (make-from-mag-ang r a)
-  ((get 'make-from-mag-ang 'polar) r a))
+; (define (make-from-real-imag x y)
+;   ((get 'make-from-real-imag 'rectangular) x y))
+; (define (make-from-mag-ang r a)
+;   ((get 'make-from-mag-ang 'polar) r a))
 
-(define (add-complex z1 z2)
-  (make-from-real-imag (+ (real-part z1) (real-part z2))
-                       (+ (imag-part z1) (imag-part z2))))
-(define (sub-complex z1 z2)
-  (make-from-real-imag (- (real-part z1) (real-part z2))
-                       (- (imag-part z1) (imag-part z2))))
-(define (mul-complex z1 z2)
-  (make-from-mag-ang (* (magnitude z1) (magnitude z2))
-                     (+ (angle z1) (angle z2))))
-(define (div-complex z1 z2)
-  (make-from-mag-ang (/ (magnitude z1) (magnitude z2))
-                     (- (angle z1) (angle z2))))
+; (define (add-complex z1 z2)
+;   (make-from-real-imag (+ (real-part z1) (real-part z2))
+;                        (+ (imag-part z1) (imag-part z2))))
+; (define (sub-complex z1 z2)
+;   (make-from-real-imag (- (real-part z1) (real-part z2))
+;                        (- (imag-part z1) (imag-part z2))))
+; (define (mul-complex z1 z2)
+;   (make-from-mag-ang (* (magnitude z1) (magnitude z2))
+;                      (+ (angle z1) (angle z2))))
+; (define (div-complex z1 z2)
+;   (make-from-mag-ang (/ (magnitude z1) (magnitude z2))
+;                      (- (angle z1) (angle z2))))
 
 ; Ex. 2.73
 (define (variable? v) (symbol? v))
@@ -256,8 +254,17 @@
        (lambda (x y) (= x y)))
   (put '=zero? '(integer)
        (lambda (x) (= x 0)))
+  (put 'sine '(integer)
+       (lambda (x) (make-real (sin x))))
+  (put 'cosine '(integer)
+       (lambda (x) (make-real (cos x))))
+  (put 'arctan '(integer)
+       (lambda (x) (make-real (atan x))))
+  (put 'square '(integer)
+       (lambda (x) (make-integer (* x x))))
+  (put 'square-root '(integer)
+       (lambda (x) (make-real (sqrt x))))
   (put 'make 'integer (lambda (x) (tag x)))
-;  (put 'raise 'integer (lambda (x) (make-rational x 1)))
   'done)
 (define (make-integer n)
   ((get 'make 'integer) n))
@@ -303,10 +310,18 @@
   (put 'equ? '(rational rational) equ-rat?)
   (put '=zero? '(rational)
        (lambda (x) (=zero-rat? x)))
+  (put 'sine '(rational)
+       (lambda (x) (make-real (sin (/ (numer x) (denom x))))))
+  (put 'cosine '(rational)
+       (lambda (x) (make-real (cos (/ (numer x) (denom x))))))
+  (put 'arctan '(rational)
+       (lambda (x) (make-real (atan (/ (numer x) (denom x))))))
+  (put 'square '(rational)
+       (lambda (x) (tag (mul-rat x x))))
+  (put 'square-root '(rational)
+       (lambda (x) (make-real (sqrt (/ (numer x) (denom x))))))
   (put 'make 'rational
        (lambda (n d) (tag (make-rat n d))))
-;  (put 'raise 'rational
-;       (lambda (x) (make-real (/ (numer x) (denom x)))))
   'done)
 ; Rational public proc
 (define (make-rational n d)
@@ -319,23 +334,31 @@
 ; Handling real numbrers
 (define (install-real-package)
   (define (tag x) (attach-tag 'real x))
-  (put 'add '('real 'real)
+  (put 'add '(real real)
        (lambda (x y) (tag (+ x y))))
-  (put 'sub '('real 'real)
+  (put 'sub '(real real)
        (lambda (x y) (tag (- x y))))
-  (put 'mul '('real 'real)
+  (put 'mul '(real real)
        (lambda (x y) (tag (* x y))))
-  (put 'div '('real 'real)
+  (put 'div '(real real)
        (lambda (x y) (tag (/ x y))))
-  (put 'exp '('real 'real)
+  (put 'exp '(real real)
        (lambda (x y) (tag (expt x y))))
-  (put 'equ? '('real 'real)
+  (put 'equ? '(real real)
        (lambda (x y) (= x y)))
   (put '=zero? '('real)
        (lambda (x) (= x 0)))
+  (put 'sine '(real)
+       (lambda (x) (make-real (sin x))))
+  (put 'cosine '(real)
+       (lambda (x) (make-real (cos x))))
+  (put 'arctan '(real)
+       (lambda (x) (make-real (atan x))))
+  (put 'square '(real)
+       (lambda (x) (make-real (* x x))))
+  (put 'square-root '(real)
+       (lambda (x) (make-real (sqrt x))))
   (put 'make 'real (lambda (x) (tag x)))
-;  (put 'raise 'real
-;       (lambda (x) (make-complex-from-real-imag x 0)))
   'done)
 (define (make-real n)
   ((get 'make 'real) n))
@@ -349,20 +372,20 @@
     ((get 'make-from-mag-ang 'polar) r a))
   ;; internal procedures
   (define (add-complex z1 z2)
-    (make-from-real-imag (+ (real-part z1) (real-part z2))
-                         (+ (imag-part z1) (imag-part z2))))
+    (make-from-real-imag (add (real-part z1) (real-part z2))
+                         (add (imag-part z1) (imag-part z2))))
   (define (sub-complex z1 z2)
-    (make-from-real-imag (- (real-part z1) (real-part z2))
-                         (- (imag-part z1) (imag-part z2))))
+    (make-from-real-imag (sub (real-part z1) (real-part z2))
+                         (sub (imag-part z1) (imag-part z2))))
   (define (mul-complex z1 z2)
-    (make-from-mag-ang (* (magnitude z1) (magnitude z2))
-                       (+ (angle z1) (angle z2))))
+    (make-from-mag-ang (mul (magnitude z1) (magnitude z2))
+                       (add (angle z1) (angle z2))))
   (define (div-complex z1 z2)
-    (make-from-mag-ang (/ (magnitude z1) (magnitude z2))
-                       (- (angle z1) (angle z2))))
+    (make-from-mag-ang (div (magnitude z1) (magnitude z2))
+                       (sub (angle z1) (angle z2))))
   (define (equ-complex? z1 z2)
-    (and (= (real-part z1) (real-part z2))
-         (= (imag-part z1) (imag-part z2))))
+    (and (equ? (real-part z1) (real-part z2))
+         (equ? (imag-part z1) (imag-part z2))))
   ;; interface to rest of the system
   (define (tag z) (attach-tag 'complex z))
   (put 'add '(complex complex)
@@ -378,9 +401,6 @@
        (lambda (z) (=zero? z))) ; delegating to polar and rectangular packages for optimization
   (put 'make-from-real-imag 'complex
        (lambda (x y) (tag (make-from-real-imag x y))))
-  (put 'raise 'real
-       (lambda (x) (tag (make-from-real-imag x 0))))
-  ; (put 'raise 'complex (lambda (x) (tag x)))
   (put 'make-from-mag-ang 'complex
        (lambda (r a) (tag (make-from-mag-ang r a))))
   (put 'real-part '(complex) real-part)
@@ -466,7 +486,7 @@
 
 (define (integer->rational x) (make-rational x 1))
 (define (rational->real x) (make-real (/ (numer x) (denom x))))
-(define (real->complex x) (make-complex-from-real-imag x 0))
+(define (real->complex x) (make-complex-from-real-imag (make-real x) (make-real 0)))
 
 (put-coercion 'integer 'rational integer->rational)
 (put-coercion 'rational 'real rational->real)
@@ -538,7 +558,7 @@
         result)))
 
 ; Ex. 2.85
-(define (complex->real x) (make-real (real-part x)))
+(define (complex->real x) (real-part x))
 
 (define (real->rational x)
   (let ((rat (rationalize x 0.1)))
@@ -571,3 +591,29 @@
            (iter (project projection) projection))
           (else prev)))
   (iter (project obj) obj))
+
+; Ex. 2.86
+; Generic functions
+(define (sine x) (apply-generic 'sine x))
+(define (cosine x) (apply-generic 'cosine x))
+(define (arctan x) (apply-generic 'arctan x))
+(define (square x) (apply-generic 'square x)) ; could be simply (mul x x)
+(define (square-root x) (apply-generic 'square-root x))
+
+; (define a (make-complex-from-real-imag
+;            (make-integer 1)
+;            (make-integer 1)))
+;
+; (define b (make-complex-from-real-imag
+;            (make-rational 3 4)
+;            (make-real 2.7)))
+;
+; > (add a b)
+; (mcons
+;  'complex
+;  (mcons 'rectangular (mcons (mcons 'rational (mcons 7 4)) (mcons 'real 3.7))))
+
+; > (add a (make-rational 3 4))
+; (mcons
+;  'complex
+;  (mcons 'rectangular (mcons (mcons 'real 7/4) (mcons 'integer 1))))
