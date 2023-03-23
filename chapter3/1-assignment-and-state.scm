@@ -40,15 +40,15 @@
                            m))))
   (let ((attempts 0))
     ; Kind of over-abstracting...
-    (define (authorize op pwd max-attempts)
+    (define (authorize pwd max-attempts)
       (cond ((eq? pwd password)
              (set! attempts 0)
-             (lambda (m) (op m)))
+             (lambda (m) (dispatch m)))
             ((< attempts max-attempts)
              (set! attempts (+ attempts 1))
              (error "Incorrect password!"))
             (else (call-the-cops))))
-      (lambda (pwd action) ((authorize dispatch pwd 7) action))))
+      (lambda (pwd action) ((authorize pwd 7) action))))
 
 ; (define (estimate-pi trials)
 ;   (sqrt (/ 6 (monte-carlo trials cesaro-test))))
@@ -68,7 +68,32 @@
                  trials-passed))))
   (iter trials 0))
 
-  ; Ex. 3.5
+; Ex. 3.5
 (define (random-in-range low high)
   (let ((range (- high low)))
-    (+ low (random range))))
+    (+ low (* (random 1.0) range))))
+
+(define (estimate-integral P x1 x2 y1 y2 trials)
+  (let ((total-area (* (- x2 x1) (- y2 y1))))
+    (exact->inexact
+     (* (monte-carlo
+          trials
+          (lambda () (P (random-in-range x1 x2)
+                        (random-in-range y1 y2))))
+        total-area))))
+
+(define (estimate-pi trials)
+  (estimate-integral
+   (lambda (x y) (<= (+ (* x x) (* y y)) 1.0))
+   -1.0
+   1.0
+   -1.0
+   1.0
+   trials))
+
+; Ex. 3.8
+(define f
+  (let ((prev 0))
+    (lambda (x)
+      (set! prev (- x prev))
+      (- x prev))))
